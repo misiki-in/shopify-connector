@@ -264,6 +264,7 @@ export class CartService extends BaseService {
     this.cartId = id
     if (typeof window !== 'undefined') {
       localStorage.setItem('shopify_cart_id', id)
+      localStorage.setItem('cart_id', id)
     }
   }
 
@@ -297,7 +298,12 @@ export class CartService extends BaseService {
    */
   async getCart(): Promise<Cart> {
     const id = this.getStoredCartId()
-    if (!id) return await this.createCart()
+    console.log("get cart called", id)
+
+    if (!id || !id.includes('gid://shopify/Cart/')) {
+      console.log("invalid cart id", id, "creating new cart")
+      return await this.createCart()
+    }
 
     try {
       const res = await this.callStorefront<any>(CART_QUERY, { cartId: id })
@@ -313,8 +319,8 @@ export class CartService extends BaseService {
    * Get cart by ID
    */
   async getCartByCartId(cartId: string): Promise<Cart> {
-    localStorage.setItem('shopify_cart_id', cartId)
-    this.cartId = cartId
+    //localStorage.setItem('shopify_cart_id', cartId)
+    //this.cartId = cartId
     return this.getCart()
   }
 
