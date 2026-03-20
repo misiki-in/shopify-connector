@@ -3,6 +3,7 @@ import type { Address } from './address-types.js'
 export type Cart = {
 	// Primary fields
 	id: string
+	checkoutUrl: string | null
 	email: string | null
 	phone: string | null
 	lineItems: CartLineItem[]

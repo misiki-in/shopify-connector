@@ -253,6 +253,7 @@ function transformShopifyCart(shopifyCart: any): Cart {
 
   return {
     id: shopifyCart.id,
+    checkoutUrl: shopifyCart.checkoutUrl || null,
     email: buyerIdentity?.email || null,
     phone: buyerIdentity?.phone || null,
     lineItems,
@@ -290,6 +291,7 @@ function transformShopifyCart(shopifyCart: any): Cart {
 function createEmptyCart(): Cart {
   return {
     id: '',
+    checkoutUrl: null,
     email: null,
     phone: null,
     lineItems: [],
@@ -379,17 +381,17 @@ export class CartService extends BaseService {
   /**
    * Get current cart
    */
-  async getCart(): Promise<Cart> {
-    const id = this.getStoredCartId()
-    console.log("get cart called", id)
+  async getCart(id?: string): Promise<Cart> {
+    const cartId = id || this.getStoredCartId()
+    console.log("get cart called", cartId)
 
-    if (!id || !id.includes('gid://shopify/Cart/')) {
-      console.log("invalid cart id", id, "creating new cart")
+    if (!cartId || !cartId.includes('gid://shopify/Cart/')) {
+      console.log("invalid cart id", cartId, "creating new cart")
       return await this.createCart()
     }
 
     try {
-      const res = await this.callStorefront<any>(CART_QUERY, { cartId: id })
+      const res = await this.callStorefront<any>(CART_QUERY, { cartId })
       if (!res.cart) return await this.createCart()
       return transformShopifyCart(res.cart)
     } catch (error) {
