@@ -9,6 +9,25 @@ const CART_FRAGMENT = `
     id
     checkoutUrl
     totalQuantity
+    buyerIdentity {
+      email
+      phone
+      deliveryAddressPreferences {
+        __typename
+        ... on MailingAddress {
+          id
+          firstName
+          lastName
+          address1
+          address2
+          city
+          province
+          zip
+          country
+          phone
+        }
+      }
+    }
     lines(first: 100) {
       edges {
         node {
@@ -170,26 +189,30 @@ const CART_DELIVERY_ADDRESSES_UPDATE_MUTATION = `
   ${CART_FRAGMENT}
 `
 
-const CART_SHIPPING_ADDRESS_UPDATE_MUTATION = `
-  mutation cartShippingAddressUpdate($cartId: ID!, $shippingAddress: MailingAddressInput!) {
-    cartShippingAddressUpdate(cartId: $cartId, shippingAddress: $shippingAddress) {
-      cart {
-        ...CartFragment
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-  ${CART_FRAGMENT}
-`
-
 /**
  * Transforms Shopify Storefront API cart to local Cart type
  */
 function transformShopifyCart(shopifyCart: any): Cart {
   if (!shopifyCart) return createEmptyCart()
+
+  const buyerIdentity = shopifyCart.buyerIdentity
+  const deliveryAddress = buyerIdentity?.deliveryAddressPreferences?.find((p: any) => p.__typename === 'MailingAddress')
+
+  const shippingAddress = deliveryAddress ? {
+    id: deliveryAddress.id,
+    active: true,
+    address_1: deliveryAddress.address1,
+    address_2: deliveryAddress.address2,
+    city: deliveryAddress.city,
+    country: deliveryAddress.country,
+    countryCode: null,
+    firstName: deliveryAddress.firstName,
+    lastName: deliveryAddress.lastName,
+    phone: deliveryAddress.phone,
+    state: deliveryAddress.province,
+    zip: deliveryAddress.zip,
+    isPrimary: true,
+  } : null
 
   const lineItems: CartLineItem[] = shopifyCart.lines.edges.map(({ node }: any) => ({
     id: node.id,
@@ -230,12 +253,14 @@ function transformShopifyCart(shopifyCart: any): Cart {
 
   return {
     id: shopifyCart.id,
-    email: null,
-    phone: null,
+    email: buyerIdentity?.email || null,
+    phone: buyerIdentity?.phone || null,
     lineItems,
     items,
     billingAddressId: null,
     shippingAddressId: null,
+    shippingAddress: shippingAddress,
+    billingAddress: shippingAddress, // Map delivery address to both for now
     regionId: null,
     userId: null,
     salesChannelId: null,
@@ -271,6 +296,8 @@ function createEmptyCart(): Cart {
     items: [],
     billingAddressId: null,
     shippingAddressId: null,
+    shippingAddress: null,
+    billingAddress: null,
     regionId: null,
     userId: null,
     salesChannelId: null,
@@ -471,12 +498,21 @@ export class CartService extends BaseService {
       id = cart.id
     }
 
+    console.log("updateCart2 id", id)
+    console.log(email, cartId, shippingAddress, billingAddress, isBillingAddressSameAsShipping)
     let currentCart: any
 
-    // Update Buyer Identity (Email, Phone)
+    // Update Buyer Identity (Email, Phone, Address)
     const buyerIdentity: any = {}
     if (email) buyerIdentity.email = email
     if (phone) buyerIdentity.phone = phone
+    if (shippingAddress) {
+      buyerIdentity.deliveryAddressPreferences = [
+        {
+          deliveryAddress: this.mapToShopifyAddressInput(shippingAddress)
+        }
+      ]
+    }
 
     if (Object.keys(buyerIdentity).length > 0) {
       const res = await this.callStorefront<any>(CART_BUYER_IDENTITY_UPDATE_MUTATION, {
@@ -484,15 +520,6 @@ export class CartService extends BaseService {
         buyerIdentity
       })
       currentCart = res.cartBuyerIdentityUpdate.cart
-    }
-
-    // Update Shipping Address
-    if (shippingAddress) {
-      const res = await this.callStorefront<any>(CART_SHIPPING_ADDRESS_UPDATE_MUTATION, {
-        cartId: id,
-        shippingAddress: this.mapToShopifyAddressInput(shippingAddress)
-      })
-      currentCart = res.cartShippingAddressUpdate.cart
     }
 
     // Note: Shopify Cart Storefront API doesn't have a separate billingAddress field.

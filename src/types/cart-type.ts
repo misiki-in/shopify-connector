@@ -1,3 +1,5 @@
+import type { Address } from './address-types.js'
+
 export type Cart = {
 	// Primary fields
 	id: string
@@ -7,6 +9,10 @@ export type Cart = {
 	// References
 	billingAddressId: string | null
 	shippingAddressId: string | null
+
+	billingAddress: Address | null
+	shippingAddress: Address | null
+
 	regionId: string | null
 	userId: string | null
 	salesChannelId: string | null
