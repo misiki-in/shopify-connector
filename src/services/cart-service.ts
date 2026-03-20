@@ -140,6 +140,51 @@ const CART_DISCOUNT_UPDATE_MUTATION = `
   ${CART_FRAGMENT}
 `
 
+const CART_BUYER_IDENTITY_UPDATE_MUTATION = `
+  mutation cartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
+    cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+      cart {
+        ...CartFragment
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+  ${CART_FRAGMENT}
+`
+
+const CART_DELIVERY_ADDRESSES_UPDATE_MUTATION = `
+  mutation cartDeliveryAddressesUpdate($cartId: ID!, $addresses: [CartSelectableAddressUpdateInput!]!) {
+    cartDeliveryAddressesUpdate(cartId: $cartId, addresses: $addresses) {
+      cart {
+        ...CartFragment
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+  ${CART_FRAGMENT}
+`
+
+const CART_SHIPPING_ADDRESS_UPDATE_MUTATION = `
+  mutation cartShippingAddressUpdate($cartId: ID!, $shippingAddress: MailingAddressInput!) {
+    cartShippingAddressUpdate(cartId: $cartId, shippingAddress: $shippingAddress) {
+      cart {
+        ...CartFragment
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+  ${CART_FRAGMENT}
+`
+
 /**
  * Transforms Shopify Storefront API cart to local Cart type
  */
@@ -153,6 +198,16 @@ function transformShopifyCart(shopifyCart: any): Cart {
     qty: node.quantity,
     price: parseFloat(node.merchandise.price.amount),
     total: parseFloat(node.merchandise.price.amount) * node.quantity,
+    slug: node.merchandise.product.handle,
+    thumbnail: node.merchandise.product.featuredImage?.url || '',
+    item_id: node.id,
+    title: node.merchandise.product.title,
+    isSelectedForCheckout: true,
+    product: {
+      id: node.merchandise.product.id,
+      title: node.merchandise.product.title,
+      handle: node.merchandise.product.handle,
+    },
   }))
 
   const items: CartProduct[] = shopifyCart.lines.edges.map(({ node }: any) => ({
@@ -164,6 +219,7 @@ function transformShopifyCart(shopifyCart: any): Cart {
     item_id: node.id,
     title: node.merchandise.product.title,
     price: parseFloat(node.merchandise.price.amount),
+    isSelectedForCheckout: true,
     product: {
       id: node.merchandise.product.id,
       title: node.merchandise.product.title,
@@ -255,7 +311,7 @@ export class CartService extends BaseService {
   private getStoredCartId(): string | null {
     if (this.cartId) return this.cartId
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('shopify_cart_id')
+      return localStorage.getItem('shopify_cart_id') || localStorage.getItem('cart_id')
     }
     return null
   }
@@ -350,6 +406,34 @@ export class CartService extends BaseService {
   }
 
   /**
+   * Update cart (compatibility method for litekart-connector)
+   */
+  async updateCart({
+    qty,
+    cartId,
+    lineId = null,
+    productId,
+    variantId,
+    isSelectedForCheckout
+  }: any) {
+    if (!cartId) {
+      cartId = this.getStoredCartId()
+    }
+    if (!cartId) {
+      const cart = await this.createCart()
+      cartId = cart.id
+    }
+
+    if (lineId) {
+      return this.updateCartItem({ cartItemKey: lineId, qty })
+    } else if (variantId) {
+      return this.addToCart({ variantId, qty })
+    }
+
+    return this.getCart()
+  }
+
+  /**
    * Update cart item quantity
    */
   async updateCartItem({
@@ -368,6 +452,72 @@ export class CartService extends BaseService {
     })
 
     return transformShopifyCart(res.cartLinesUpdate.cart)
+  }
+
+  /**
+   * Update cart 2 (compatibility method for litekart-connector)
+   */
+  async updateCart2({
+    cartId,
+    email,
+    phone,
+    shippingAddress,
+    billingAddress,
+    isBillingAddressSameAsShipping
+  }: any) {
+    let id = cartId || this.getStoredCartId()
+    if (!id) {
+      const cart = await this.createCart()
+      id = cart.id
+    }
+
+    let currentCart: any
+
+    // Update Buyer Identity (Email, Phone)
+    const buyerIdentity: any = {}
+    if (email) buyerIdentity.email = email
+    if (phone) buyerIdentity.phone = phone
+
+    if (Object.keys(buyerIdentity).length > 0) {
+      const res = await this.callStorefront<any>(CART_BUYER_IDENTITY_UPDATE_MUTATION, {
+        cartId: id,
+        buyerIdentity
+      })
+      currentCart = res.cartBuyerIdentityUpdate.cart
+    }
+
+    // Update Shipping Address
+    if (shippingAddress) {
+      const res = await this.callStorefront<any>(CART_SHIPPING_ADDRESS_UPDATE_MUTATION, {
+        cartId: id,
+        shippingAddress: this.mapToShopifyAddressInput(shippingAddress)
+      })
+      currentCart = res.cartShippingAddressUpdate.cart
+    }
+
+    // Note: Shopify Cart Storefront API doesn't have a separate billingAddress field.
+    // Billing address is typically collected during the payment step of checkout.
+    // For now, we'll just return the updated cart.
+
+    return currentCart ? transformShopifyCart(currentCart) : this.getCart()
+  }
+
+  /**
+   * Maps local address data to Shopify MailingAddressInput
+   */
+  private mapToShopifyAddressInput(address: any): any {
+    console.log("input address", address)
+    return {
+      address1: address.address_1 || address.address,
+      address2: address.address_2 || '',
+      city: address.city,
+      country: address.country || address.countryCode || 'IN',
+      firstName: address.firstName,
+      lastName: address.lastName,
+      phone: address.phone,
+      province: address.state,
+      zip: address.zip,
+    }
   }
 
   /**
@@ -391,6 +541,7 @@ export class CartService extends BaseService {
   async clearCart() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('shopify_cart_id')
+      localStorage.removeItem('cart_id')
     }
     this.cartId = null
     return await this.createCart()
@@ -424,6 +575,26 @@ export class CartService extends BaseService {
     })
 
     return transformShopifyCart(res.cartDiscountCodesUpdate.cart)
+  }
+
+  /**
+   * Complete cart (checkout)
+   */
+  async completeCart(cartId: string) {
+    return this.getCart()
+  }
+
+  /**
+   * Update shipping rate
+   */
+  async updateShippingRate({
+    cartId,
+    shippingRateId
+  }: {
+    cartId: string
+    shippingRateId: string
+  }) {
+    return this.getCart()
   }
 }
 

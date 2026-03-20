@@ -1,4 +1,5 @@
 import type { User } from '../types'
+import { removeCustomerAccessToken, setCustomerAccessToken } from './auth-service'
 import { BaseService } from './base-service'
 
 type UserExtended = {
@@ -146,11 +147,12 @@ export class UserService extends BaseService {
     // After login, we usually fetch the user details
     const token = data.customerAccessToken.accessToken
     const user = await this.getMe(token)
-    
+
     if (typeof document !== 'undefined') {
       saveUserAsMeCookie(user)
     }
 
+    setCustomerAccessToken(data.customerAccessToken.accessToken)
     return { user, token: data.customerAccessToken }
   }
 
@@ -159,6 +161,7 @@ export class UserService extends BaseService {
     if (typeof document !== 'undefined') {
       deleteMeCookie()
     }
+    removeCustomerAccessToken()
     return null
   }
 

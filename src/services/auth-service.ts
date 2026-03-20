@@ -1,6 +1,25 @@
 import { BaseService } from './base-service'
 import type { User } from '../types'
 
+export function setCustomerAccessToken(token: string) {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('customerAccessToken', token)
+  }
+}
+
+export function getCustomerAccessToken() {
+  if (typeof localStorage !== 'undefined') {
+    return localStorage.getItem('customerAccessToken')
+  }
+  return null
+}
+
+export function removeCustomerAccessToken() {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('customerAccessToken')
+  }
+}
+
 /**
  * AuthService handles customer authentication and profile management
  * using the Shopify Storefront API.
@@ -69,6 +88,7 @@ export class AuthService extends BaseService {
       throw new Error(data.customerUserErrors[0].message)
     }
 
+    setCustomerAccessToken(data.customerAccessToken.accessToken)
     return data.customerAccessToken
   }
 
@@ -244,6 +264,7 @@ export class AuthService extends BaseService {
    */
   logout() {
     this.currentUser = null
+    removeCustomerAccessToken()
     return true
   }
 
