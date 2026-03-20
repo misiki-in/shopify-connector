@@ -53,7 +53,7 @@ export class CheckoutService extends BaseService {
     `
     const res = await this.callStorefront<any>(query, { id: cartId })
     const cart = res.cart
-    
+
     if (!cart) {
       throw new Error(`Cart not found with ID: ${cartId}`)
     }
@@ -79,31 +79,51 @@ export class CheckoutService extends BaseService {
 
   /**
    * Initiates Cash on Delivery checkout process
-   * For Shopify, this updates the cart note and returns the cart for redirection.
+   * For Shopify, this updates the cart note, sets the return URL, and returns the redirect URL.
    */
-  async checkoutCOD({ cartId, origin }: { cartId: string; origin: string }): Promise<Cart> {
+  async checkoutCOD({ cartId, origin }: { cartId: string; origin: string }): Promise<any> {
     const mutation = `
-      mutation cartNoteUpdate($cartId: ID!, $note: String!) {
+      mutation checkoutInitiate($cartId: ID!, $note: String!, $attributes: [AttributeInput!]!) {
         cartNoteUpdate(cartId: $cartId, note: $note) {
+          cart { id }
+        }
+        cartAttributesUpdate(cartId: $cartId, attributes: $attributes) {
           cart {
             id
+            checkoutUrl
           }
         }
       }
     `
-    await this.callStorefront<any>(mutation, { 
-      cartId, 
-      note: 'Payment Method: Cash on Delivery (COD)' 
+    const res = await this.callStorefront<any>(mutation, {
+      cartId,
+      note: 'Payment Method: Cash on Delivery (COD)',
+      attributes: [{ key: 'return_url', value: origin }]
     })
-    
-    return cartService.getCart(cartId)
+
+    window.location.href = res.cartAttributesUpdate.cart.checkoutUrl
+    return { status: 'redirect', url: res.cartAttributesUpdate.cart.checkoutUrl }
   }
 
   /**
-   * Redirects to Shopify checkout for Razorpay (stub)
+   * Initiates Razorpay checkout process (redirects to Shopify checkout)
    */
-  async checkoutRazorpay({ cartId, origin }: { cartId: string; origin: string }): Promise<Cart> {
-    return cartService.getCart(cartId)
+  async checkoutRazorpay({ cartId, origin }: { cartId: string; origin: string }): Promise<any> {
+    const mutation = `
+      mutation cartAttributesUpdate($cartId: ID!, $attributes: [AttributeInput!]!) {
+        cartAttributesUpdate(cartId: $cartId, attributes: $attributes) {
+          cart {
+            id
+            checkoutUrl
+          }
+        }
+      }
+    `
+    const res = await this.callStorefront<any>(mutation, {
+      cartId,
+      attributes: [{ key: 'return_url', value: origin }]
+    })
+    return { status: 'redirect', url: res.cartAttributesUpdate.cart.checkoutUrl }
   }
 
   /**
@@ -114,11 +134,24 @@ export class CheckoutService extends BaseService {
   }
 
   /**
-   * Initiates PhonePe checkout process (stub)
+   * Initiates PhonePe checkout process (redirects to Shopify checkout)
    */
   async checkoutPhonepe(params: any): Promise<any> {
-    const cart = await cartService.getCart(params.cartId)
-    return { status: 'redirect', url: cart.checkoutUrl }
+    const mutation = `
+      mutation cartAttributesUpdate($cartId: ID!, $attributes: [AttributeInput!]!) {
+        cartAttributesUpdate(cartId: $cartId, attributes: $attributes) {
+          cart {
+            id
+            checkoutUrl
+          }
+        }
+      }
+    `
+    const res = await this.callStorefront<any>(mutation, {
+      cartId: params.cartId,
+      attributes: [{ key: 'return_url', value: params.origin }]
+    })
+    return { status: 'redirect', url: res.cartAttributesUpdate.cart.checkoutUrl }
   }
 
   async capturePhonepePayment(params: any): Promise<any> {
@@ -126,13 +159,39 @@ export class CheckoutService extends BaseService {
   }
 
   async checkoutPaypal(params: any): Promise<any> {
-    const cart = await cartService.getCart(params.cartId)
-    return { status: 'redirect', url: cart.checkoutUrl }
+    const mutation = `
+      mutation cartAttributesUpdate($cartId: ID!, $attributes: [AttributeInput!]!) {
+        cartAttributesUpdate(cartId: $cartId, attributes: $attributes) {
+          cart {
+            id
+            checkoutUrl
+          }
+        }
+      }
+    `
+    const res = await this.callStorefront<any>(mutation, {
+      cartId: params.cartId,
+      attributes: [{ key: 'return_url', value: params.origin }]
+    })
+    return { status: 'redirect', url: res.cartAttributesUpdate.cart.checkoutUrl }
   }
 
   async checkoutStripe(params: any): Promise<any> {
-    const cart = await cartService.getCart(params.cartId)
-    return { status: 'redirect', url: cart.checkoutUrl }
+    const mutation = `
+      mutation cartAttributesUpdate($cartId: ID!, $attributes: [AttributeInput!]!) {
+        cartAttributesUpdate(cartId: $cartId, attributes: $attributes) {
+          cart {
+            id
+            checkoutUrl
+          }
+        }
+      }
+    `
+    const res = await this.callStorefront<any>(mutation, {
+      cartId: params.cartId,
+      attributes: [{ key: 'return_url', value: params.origin }]
+    })
+    return { status: 'redirect', url: res.cartAttributesUpdate.cart.checkoutUrl }
   }
 
   async checkoutStripeCapture(params: any): Promise<any> {

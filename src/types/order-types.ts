@@ -1,7 +1,7 @@
 export type Order = {
   id: string
   orderNo: string
-  parentOrderNo: string
+  parentOrderNo?: string
   createdAt: string
   updatedAt: string
   status: string
@@ -14,9 +14,13 @@ export type Order = {
     total: number
     title: string
     sku: string
+    thumbnail?: string
   }>
+  userId?: string
   userEmail: string
   userPhone: string
+  userFirstName?: string
+  userLastName?: string
   shippingAddress: any
   billingAddress: any
   subtotal: number
@@ -26,4 +30,7 @@ export type Order = {
   tax: number
   paymentMethod: string
   paymentStatus: string
+  currencyCode?: string
+  currencySymbol?: string
+  paid?: boolean
 }
