@@ -5,6 +5,9 @@ export type User = {
   lastName: string
   phone: string | null
   active: boolean
+  avatar?: string | null
+  role?: string | null
+  cartId?: string | null
   createdAt: string
   updatedAt: string
 }

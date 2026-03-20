@@ -1,38 +1,20 @@
-import type { User } from '../types'
-import { removeCustomerAccessToken, setCustomerAccessToken } from './auth-service'
-import { BaseService } from './base-service'
+import type { User } from '../types/index.js'
+import { getCustomerAccessToken, removeCustomerAccessToken, setCustomerAccessToken } from './auth-service.js'
+import { BaseService } from './base-service.js'
 
-type UserExtended = {
-  userId: string
-  role: string
-} & User
-
-// Browser-compatible cookie functions
-function deleteMeCookie() {
-  if (typeof document !== 'undefined') {
-    document.cookie = 'me=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/;'
-  }
-}
-
-function saveUserAsMeCookie(user: UserExtended) {
-  if (typeof document !== 'undefined') {
-    const me = encodeURIComponent(JSON.stringify(user))
-    document.cookie = 'me=' + me + ';path=/;'
-  }
-}
-
-function customerToUser(customer: any): UserExtended {
+// Helper to transform Shopify customer response to User object
+function customerToUser(customer: any): User {
   return {
-    id: customer.id?.toString() || '',
-    userId: customer.id?.toString() || '',
+    id: customer.id || '',
     email: customer.email || '',
-    firstName: customer.firstName || customer.first_name || '',
-    lastName: customer.lastName || customer.last_name || '',
+    firstName: customer.firstName || '',
+    lastName: customer.lastName || '',
     phone: customer.phone || null,
-    active: customer.state === 'enabled' || !!customer.id,
-    createdAt: customer.createdAt || customer.created_at || '',
-    updatedAt: customer.updatedAt || customer.updated_at || '',
-    role: "USER"
+    active: true,
+    avatar: customer.avatar || null,
+    role: 'USER',
+    createdAt: customer.createdAt || '',
+    updatedAt: customer.updatedAt || '',
   }
 }
 
@@ -46,8 +28,11 @@ export class UserService extends BaseService {
     return UserService.instance
   }
 
-  // Get current authenticated user (requires customerAccessToken)
-  async getMe(customerAccessToken: string) {
+  // Retrieves the currently authenticated user's profile
+  async getMe() {
+    const token = getCustomerAccessToken()
+    if (!token) throw new Error('No customer access token found')
+    
     const query = `
       query getCustomer($customerAccessToken: String!) {
         customer(customerAccessToken: $customerAccessToken) {
@@ -56,35 +41,41 @@ export class UserService extends BaseService {
           lastName
           email
           phone
+          createdAt
+          updatedAt
         }
       }
     `
-    const res = await this.callStorefront<any>(query, { customerAccessToken })
+    const res = await this.callStorefront<any>(query, { customerAccessToken: token })
     if (!res.customer) throw new Error('Customer not found')
     return customerToUser(res.customer)
   }
 
-  // Get specific user by ID (Admin API)
+  // Retrieves a specific user by ID (requires Admin API)
   async getUser(id: string) {
     const res = await this.get<{ customer: any }>(`/customers/${id}.json`)
     return customerToUser(res.customer)
   }
 
-  // Customer registration (Storefront API)
+  // Registers a new user account
   async signup({
     firstName,
     lastName,
     phone,
     email,
     password,
+    cartId = null,
+    origin
   }: {
     firstName: string
     lastName: string
     phone: string
     email: string
     password: string
+    cartId?: string | null
+    origin: string
   }) {
-    const query = `
+    const mutation = `
       mutation customerCreate($input: CustomerCreateInput!) {
         customerCreate(input: $input) {
           customer {
@@ -93,6 +84,8 @@ export class UserService extends BaseService {
             lastName
             email
             phone
+            createdAt
+            updatedAt
           }
           customerUserErrors {
             code
@@ -102,7 +95,7 @@ export class UserService extends BaseService {
         }
       }
     `
-    const res = await this.callStorefront<any>(query, {
+    const res = await this.callStorefront<any>(mutation, {
       input: { firstName, lastName, phone, email, password }
     })
 
@@ -111,16 +104,12 @@ export class UserService extends BaseService {
       throw new Error(data.customerUserErrors[0].message)
     }
 
-    const user = customerToUser(data.customer)
-    if (typeof document !== 'undefined') {
-      saveUserAsMeCookie(user)
-    }
-    return user
+    return customerToUser(data.customer)
   }
 
-  // Login (Storefront API)
-  async login({ email, password }: { email: string; password: string }) {
-    const query = `
+  // Authenticates a user with email and password
+  async login({ email, password, cartId = null }: { email: string; password: string; cartId?: string | null }) {
+    const mutation = `
       mutation customerAccessTokenCreate($input: CustomerAccessTokenCreateInput!) {
         customerAccessTokenCreate(input: $input) {
           customerAccessToken {
@@ -135,7 +124,7 @@ export class UserService extends BaseService {
         }
       }
     `
-    const res = await this.callStorefront<any>(query, {
+    const res = await this.callStorefront<any>(mutation, {
       input: { email, password }
     })
 
@@ -144,30 +133,16 @@ export class UserService extends BaseService {
       throw new Error(data.customerUserErrors[0].message)
     }
 
-    // After login, we usually fetch the user details
     const token = data.customerAccessToken.accessToken
-    const user = await this.getMe(token)
-
-    if (typeof document !== 'undefined') {
-      saveUserAsMeCookie(user)
-    }
-
-    setCustomerAccessToken(data.customerAccessToken.accessToken)
-    return { user, token: data.customerAccessToken }
+    setCustomerAccessToken(token)
+    
+    const user = await this.getMe()
+    return { token, user }
   }
 
-  // Logout (clears cookie)
-  async logout() {
-    if (typeof document !== 'undefined') {
-      deleteMeCookie()
-    }
-    removeCustomerAccessToken()
-    return null
-  }
-
-  // Forgot password (Storefront API)
-  async forgotCustomerPassword(email: string) {
-    const query = `
+  // Initiates a password reset workflow
+  async forgotPassword({ email, referrer }: { email: string; referrer: string }) {
+    const mutation = `
       mutation customerRecover($email: String!) {
         customerRecover(email: $email) {
           customerUserErrors {
@@ -178,51 +153,39 @@ export class UserService extends BaseService {
         }
       }
     `
-    const res = await this.callStorefront<any>(query, { email })
+    const res = await this.callStorefront<any>(mutation, { email })
     if (res.customerRecover?.customerUserErrors?.length > 0) {
       throw new Error(res.customerRecover.customerUserErrors[0].message)
     }
     return true
   }
 
-  // Reset password (Storefront API)
-  async resetPassword({ resetToken, password }: { resetToken: string; password: string }) {
-    const query = `
-      mutation customerReset($resetToken: String!, $password: String!) {
-        customerReset(resetToken: $resetToken, password: $password) {
-          customer {
-            id
-          }
-          customerUserErrors {
-            code
-            field
-            message
-          }
-        }
-      }
-    `
-    const res = await this.callStorefront<any>(query, { resetToken, password })
-    if (res.customerReset?.customerUserErrors?.length > 0) {
-      throw new Error(res.customerReset.customerUserErrors[0].message)
-    }
+  // Logs out the current user
+  async logout() {
+    removeCustomerAccessToken()
     return true
   }
 
-  // Update profile (Storefront API)
+  // Updates a user's profile information
   async updateProfile({
-    customerAccessToken,
+    id,
     firstName,
     lastName,
     email,
-    phone
+    phone,
+    avatar
   }: {
-    customerAccessToken: string
+    id?: string
     firstName?: string
     lastName?: string
     email?: string
-    phone?: string
+    phone?: string | null
+    avatar?: string | null
   }) {
-    const query = `
+    const token = getCustomerAccessToken()
+    if (!token) throw new Error('No customer access token found')
+
+    const mutation = `
       mutation customerUpdate($customerAccessToken: String!, $customer: CustomerUpdateInput!) {
         customerUpdate(customerAccessToken: $customerAccessToken, customer: $customer) {
           customer {
@@ -231,6 +194,8 @@ export class UserService extends BaseService {
             lastName
             email
             phone
+            createdAt
+            updatedAt
           }
           customerUserErrors {
             code
@@ -240,8 +205,8 @@ export class UserService extends BaseService {
         }
       }
     `
-    const res = await this.callStorefront<any>(query, {
-      customerAccessToken,
+    const res = await this.callStorefront<any>(mutation, {
+      customerAccessToken: token,
       customer: { firstName, lastName, email, phone }
     })
 
@@ -253,20 +218,80 @@ export class UserService extends BaseService {
     return customerToUser(data.customer)
   }
 
-  // Check email existence (Admin API)
-  async checkEmail(email: string) {
-    const res = await this.get<{ customers: any[] }>(`/customers/search.json?query=email:${email}`)
-    return { exists: (res.customers?.length || 0) > 0 }
-  }
-
-  // Join as vendor (placeholder)
-  async joinAsVendor(data: any) {
+  // Placeholder for joining as vendor
+  async joinAsVendor(params: any) {
     return Promise.resolve()
   }
 
-  // Delete user (placeholder - requires Admin API with high permissions)
+  // Change password (Storefront API)
+  async changePassword({ old, password }: { old: string; password: string }) {
+    const token = getCustomerAccessToken()
+    if (!token) throw new Error('No customer access token found')
+
+    const mutation = `
+      mutation customerUpdate($customerAccessToken: String!, $customer: CustomerUpdateInput!) {
+        customerUpdate(customerAccessToken: $customerAccessToken, customer: $customer) {
+          customer { id }
+          customerUserErrors {
+            code
+            field
+            message
+          }
+        }
+      }
+    `
+    const res = await this.callStorefront<any>(mutation, {
+      customerAccessToken: token,
+      customer: { password }
+    })
+
+    const data = res.customerUpdate
+    if (data.customerUserErrors?.length > 0) {
+      throw new Error(data.customerUserErrors[0].message)
+    }
+
+    return true
+  }
+
+  // Reset password (Storefront API)
+  async resetPassword({ userId, token, password }: { userId: string; token: string; password: string }) {
+    const mutation = `
+      mutation customerReset($resetToken: String!, $password: String!) {
+        customerReset(resetToken: $resetToken, password: $password) {
+          customer { id }
+          customerUserErrors {
+            code
+            field
+            message
+          }
+        }
+      }
+    `
+    const res = await this.callStorefront<any>(mutation, { resetToken: token, password })
+    if (res.customerReset?.customerUserErrors?.length > 0) {
+      throw new Error(res.customerReset.customerUserErrors[0].message)
+    }
+    return true
+  }
+
+  // Stubs for OTP (Shopify doesn't natively support OTP login via Storefront API without a carrier)
+  async getOtp(params: any) {
+    return { otp: 'OTP sent' }
+  }
+
+  async verifyOtp(params: any) {
+    return { status: 'success' }
+  }
+
+  // Check email existence (requires Admin API)
+  async checkEmail(email: string) {
+    const res = await this.get<{ customers: any[] }>(`/customers/search.json?query=email:${email}`)
+    return (res.customers?.length || 0) > 0
+  }
+
+  // Delete user (requires Admin API)
   async deleteUser(id: string) {
-    throw new Error("Customer deletion requires Admin API with appropriate permissions.")
+    return this.delete(`/customers/${id}.json`)
   }
 }
 
