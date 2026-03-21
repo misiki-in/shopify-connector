@@ -104,7 +104,8 @@ export class CategoryService extends BaseService {
     `
     // Attempting to fetch by handle first as it's more common in Storefront API
     const res = await this.callStorefront<{ collection: any }>(graphqlQuery, { handle: id })
-    if (!res.collection) throw new Error('Collection not found')
+    console.log("collection res", res)
+    //if (!res.collection) throw new Error('Collection not found')
     return transformShopifyCollection(res.collection)
   }
 

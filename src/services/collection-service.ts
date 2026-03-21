@@ -1,6 +1,21 @@
 import { BaseService } from './base-service'
 import { PAGE_SIZE } from '../config'
 import { PRODUCT_FRAGMENT, transformShopifyProduct } from './product-service'
+import { transformShopifyCollection } from './category-service'
+
+const COLLECTION_FRAGMENT = `
+  fragment CollectionFields on Collection {
+    id
+    handle
+    title
+    description
+    descriptionHtml
+    image {
+      url
+      altText
+    }
+  }
+`
 
 export class CollectionService extends BaseService {
   private static instance: CollectionService
@@ -13,60 +28,63 @@ export class CollectionService extends BaseService {
   }
 
   /**
-   * Fetch all unique product tags
+   * Fetch all collections from Shopify
    */
-  async list() {
+  async list({ page = 1, perPage = PAGE_SIZE, search = '' } = {}) {
     const graphqlQuery = `
-      query getTags($first: Int!) {
-        productTags(first: $first) {
-          edges {
-            node
+      ${COLLECTION_FRAGMENT}
+      query getCollections($first: Int!) {
+        collections(first: $first) {
+          nodes {
+            ...CollectionFields
           }
         }
       }
     `
     try {
-      const res = await this.callStorefront<{ productTags: { edges: Array<{ node: string }> } }>(graphqlQuery, {
-        first: 250
+      const res = await this.callStorefront<{ collections: { nodes: any[] } }>(graphqlQuery, {
+        first: 250 // Fetch many collections
       })
-      const tags = res.productTags?.edges?.map(edge => edge.node) || []
+      const collections = res.collections?.nodes || []
       
+      const transformedData = collections.map(transformShopifyCollection)
+
       return {
-        data: tags.map(tag => ({
-          id: tag,
-          name: tag,
-          slug: tag,
-          status: 'active'
-        })),
-        count: tags.length
+        data: transformedData,
+        count: transformedData.length,
+        page: page,
+        pageSize: perPage,
+        noOfPage: Math.ceil(transformedData.length / perPage)
       }
     } catch (error) {
-      console.error('Error fetching tags:', error)
-      return { data: [], count: 0 }
+      console.error('Error fetching collections:', error)
+      return { data: [], count: 0, page, pageSize: perPage, noOfPage: 1 }
     }
   }
 
   /**
-   * Get products by tag
+   * Get products by collection handle
    */
-  async getProductsByTag(tag: string, { page = 1, perPage = PAGE_SIZE } = {}) {
+  async getProductsByCollection(handle: string, { page = 1, perPage = PAGE_SIZE } = {}) {
     const graphqlQuery = `
       ${PRODUCT_FRAGMENT}
-      query getProductsByTag($query: String!, $first: Int!) {
-        products(first: $first, query: $query) {
-          nodes {
-            ...ProductFields
+      query getCollectionProducts($handle: String!, $first: Int!) {
+        collection(handle: $handle) {
+          products(first: $first) {
+            nodes {
+              ...ProductFields
+            }
           }
         }
       }
     `
     try {
-      const res = await this.callStorefront<{ products: { nodes: any[] } }>(graphqlQuery, {
-        query: `tag:${tag}`,
+      const res = await this.callStorefront<{ collection: { products: { nodes: any[] } } }>(graphqlQuery, {
+        handle: handle,
         first: perPage
       })
 
-      const products = res.products?.nodes || []
+      const products = res.collection?.products?.nodes || []
       
       return {
         data: products.map(transformShopifyProduct) || [],
@@ -75,9 +93,16 @@ export class CollectionService extends BaseService {
         pageSize: perPage
       }
     } catch (error) {
-      console.error('Error fetching products by tag:', error)
+      console.error('Error fetching products by collection:', error)
       return { data: [], total: 0, page, pageSize: perPage }
     }
+  }
+
+  /**
+   * Backward compatibility for getProductsByTag, mapping it to collections
+   */
+  async getProductsByTag(tag: string, options = {}) {
+    return this.getProductsByCollection(tag, options)
   }
 }
 
