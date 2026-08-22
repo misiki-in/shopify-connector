@@ -1,7 +1,7 @@
 {
   "name": "@misiki/shopify-connector",
   "version": "1.0.2",
-  "description": "A powerful API connector for integrating Shopify with svelte-commerce platform",
+  "description": "API Connector for Shopify with Svelte Commerce",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -37,9 +37,12 @@
   "keywords": [
     "shopify",
     "litekart",
-    "ecommerce",
-    "api",
     "connector",
+    "ecommerce",
+    "headless",
+    "graphql",
+    "storefront",
+    "api",
     "integration",
     "typescript",
     "svelte"
