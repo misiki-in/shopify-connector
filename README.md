@@ -6,10 +6,10 @@
 
 **The Official TypeScript API Connector for connecting `svelte-commerce` to Shopify E-Commerce Backend.**
 
-`@misiki/shopify-connector` provides a production-ready, fully-typed API client and integration layer that seamlessly bridges [svelte-commerce](https://github.com/misiki-in/svelte-commerce) storefronts with [Shopify](https://shopify.com) headless e-commerce backends — part of the [Litekart](https://litekart.in) connector suite, mirroring the full 27-service surface of [`@misiki/litekart-connector`](https://github.com/misiki-in/litekart-connector).
+`@misiki/shopify-connector` provides a production-ready, fully-typed API client and integration layer that seamlessly bridges [svelte-commerce](https://github.com/misiki-in/svelte-commerce) storefronts with [Shopify](https://shopify.com) headless e-commerce backends — part of the [Litekart](https://litekart.in) connector suite, mirroring the full 26-service surface of [`@misiki/litekart-connector`](https://github.com/misiki-in/litekart-connector).
 
-> **Coverage:** 6 of 27 services are wired to the live Shopify API.
-> The remaining 21 have no Shopify equivalent and return empty placeholder
+> **Coverage:** 16 of 26 services are wired to the live Shopify API.
+> The remaining 10 have no Shopify equivalent and return empty placeholder
 > data. Each placeholder says why in a comment at the top of its service file.
 
 ---
@@ -87,33 +87,32 @@ bun run preview
 
 | Service | Status |
 | --- | --- |
-| `client.product` | ⚠️ placeholder (no Shopify equivalent) |
-| `client.category` | ⚠️ placeholder (no Shopify equivalent) |
-| `client.collection` | ⚠️ placeholder (no Shopify equivalent) |
-| `client.order` | ⚠️ placeholder (no Shopify equivalent) |
+| `client.product` | ✅ live |
+| `client.category` | ✅ live |
+| `client.collection` | ✅ live |
+| `client.order` | ✅ live |
 | `client.coupon` | ✅ live |
-| `client.address` | ⚠️ placeholder (no Shopify equivalent) |
+| `client.address` | ✅ live |
 | `client.review` | ⚠️ placeholder (no Shopify equivalent) |
-| `client.cart` | ⚠️ placeholder (no Shopify equivalent) |
+| `client.cart` | ✅ live |
 | `client.country` | ⚠️ placeholder (no Shopify equivalent) |
 | `client.page` | ⚠️ placeholder (no Shopify equivalent) |
 | `client.blog` | ✅ live |
 | `client.store` | ✅ live |
-| `client.paymentMethod` | ⚠️ placeholder (no Shopify equivalent) |
-| `client.search` | ⚠️ placeholder (no Shopify equivalent) |
+| `client.paymentMethod` | ✅ live |
+| `client.search` | ✅ live |
 | `client.user` | ✅ live |
 | `client.auth` | ✅ live |
 | `client.profile` | ⚠️ placeholder (no Shopify equivalent) |
 | `client.wishlist` | ⚠️ placeholder (no Shopify equivalent) |
 | `client.vendor` | ⚠️ placeholder (no Shopify equivalent) |
-| `client.checkout` | ⚠️ placeholder (no Shopify equivalent) |
+| `client.checkout` | ✅ live |
 | `client.chat` | ⚠️ placeholder (no Shopify equivalent) |
 | `client.contact` | ⚠️ placeholder (no Shopify equivalent) |
 | `client.enquiry` | ⚠️ placeholder (no Shopify equivalent) |
 | `client.faq` | ⚠️ placeholder (no Shopify equivalent) |
 | `client.meilisearch` | ✅ live |
-| `client.menu` | ⚠️ placeholder (no Shopify equivalent) |
-| `client.base` | ⚠️ placeholder (no Shopify equivalent) |
+| `client.menu` | ✅ live |
 
 ## Development
 
