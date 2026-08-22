@@ -2,9 +2,9 @@ import base32 from 'hi-base32';
 
 export const PUBLIC_SHOPIFY_API_PREFIX = "/admin/api/2026-01"
 
-export let SHOPIFY_STORE_DOMAIN: string = 'aduwmj-xj.myshopify.com'
-export let SHOPIFY_ACCESS_TOKEN: string = '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'
-export let SHOPIFY_STOREFRONT_ACCESS_TOKEN: string = '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' // Placeholder
+export let SHOPIFY_STORE_DOMAIN: string = ''
+export let SHOPIFY_ACCESS_TOKEN: string = ''
+export let SHOPIFY_STOREFRONT_ACCESS_TOKEN: string = ''
 export let SHOPIFY_PROXY_URL: string | null = '/api/shopify' // Optional proxy URL
 
 /**
@@ -18,14 +18,14 @@ export class BaseService {
   }
 
   static setShopifyCredentials(storeDomain: string, accessToken: string, storefrontAccessToken?: string, proxyUrl?: string) {
-    /*SHOPIFY_STORE_DOMAIN = storeDomain
+    SHOPIFY_STORE_DOMAIN = storeDomain
     SHOPIFY_ACCESS_TOKEN = accessToken
     if (storefrontAccessToken) {
       SHOPIFY_STOREFRONT_ACCESS_TOKEN = storefrontAccessToken
     }
     if (proxyUrl) {
       SHOPIFY_PROXY_URL = proxyUrl
-    }*/
+    }
   }
 
   static getCredentials() {
