@@ -2,7 +2,7 @@ import { BaseService } from "./base-service"
 
 /**
  * WishlistService provides functionality for working with specific resources
- * in the Litekart API.
+ * in the storefront API.
  *
  * This service helps with:
  * - Managing user wishlists

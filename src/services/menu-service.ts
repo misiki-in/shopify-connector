@@ -1,4 +1,5 @@
 import { BaseService } from './base-service'
+import { readStaticStore } from './static-store'
 
 export interface MenuItem {
     id: string
@@ -104,6 +105,21 @@ export class MenuService extends BaseService {
      * @returns {Promise<any>} The requested data in PaginatedResponse format
      */
     async list() {
+        // The nav reads `response.data` and filters on `menuId`. When the storefront has registered
+        // its own store identity, the menus recorded there are the authoritative answer and no
+        // Storefront API call is made.
+        const staticStore = await readStaticStore()
+        if (staticStore) {
+            const menus = (staticStore.menu ?? []) as Menu[]
+            return {
+                count: menus.length,
+                data: menus,
+                page: 1,
+                pageSize: 20,
+                noOfPage: 1
+            }
+        }
+
         try {
             // Fetch common menus. Shopify default handles are 'main-menu' and 'footer'
             // We map 'main-menu' to 'header' for svelte-commerce compatibility

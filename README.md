@@ -6,7 +6,7 @@
 
 **The Official TypeScript API Connector for connecting `svelte-commerce` to Shopify E-Commerce Backend.**
 
-`@misiki/shopify-connector` provides a production-ready, fully-typed API client and integration layer that seamlessly bridges [svelte-commerce](https://github.com/misiki-in/svelte-commerce) storefronts with [Shopify](https://shopify.com) headless e-commerce backends — part of the [Litekart](https://litekart.in) connector suite, mirroring the full 26-service surface of [`@misiki/litekart-connector`](https://github.com/misiki-in/litekart-connector).
+`@misiki/shopify-connector` provides a production-ready, fully-typed API client and integration layer that seamlessly bridges [svelte-commerce](https://github.com/misiki-in/svelte-commerce) storefronts with [Shopify](https://shopify.com) headless e-commerce backends, mirroring the full 26-service surface every svelte-commerce connector implements.
 
 > **Coverage:** 16 of 26 services are wired to the live Shopify API.
 > The remaining 10 have no Shopify equivalent and return empty placeholder

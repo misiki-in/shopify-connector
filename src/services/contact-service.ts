@@ -3,7 +3,7 @@ import { BaseService } from './base-service'
 
 /**
  * ContactService provides functionality for managing contact requests
- * in the Litekart platform.
+ * in the storefront API.
  *
  * This service helps with:
  * - Submitting contact form data to the API

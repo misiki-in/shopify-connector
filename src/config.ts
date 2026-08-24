@@ -39,7 +39,7 @@ export const storeData = `{
   "businessPhone": "+123456789",
   "businessEmail": "hi@shopnx.in",
   "businessLegalName": "Misiki Technologies LLP",
-  "businessName": "Litekart",
+  "businessName": "Shopnx",
   "address_1": "Central Market",
   "address_2": "Badabazar",
   "zipCode": "",

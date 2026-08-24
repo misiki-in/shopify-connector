@@ -25,3 +25,12 @@ export * from './faq-service.js'
 export * from './country-service.js'
 export * from './chat-service.js'
 export * from './vendor-service.js'
+export * from './static-store.js'
+
+/**
+ * The marker every storefront reads to tell which backend is active — for env checks, health
+ * probes and features that only exist behind a particular backend.
+ */
+export const connectorName = 'shopify'
+export * from './rest-guard.js'
+

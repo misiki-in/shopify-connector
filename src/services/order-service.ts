@@ -168,7 +168,7 @@ export class OrderService extends BaseService {
     return this.fetchOrder(orderId)
   }
 
-  // Payment stubs to match litekart-connector interface
+  // Payment stubs to match the storefront checkout interface
   async codCheckout(params: any) { return {} as Order }
   async cashfreeCheckout(params: any) { return {} as Order }
   async razorpayCheckout(params: any) { return {} as Order }

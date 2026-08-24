@@ -1,4 +1,5 @@
 import base32 from 'hi-base32';
+import { isRestPath, resolveRestLocally } from './rest-guard'
 
 export const PUBLIC_SHOPIFY_API_PREFIX = "/admin/api/2026-01"
 
@@ -114,10 +115,12 @@ export class BaseService {
   }
 
   async get<T>(url: string): Promise<T> {
+    if (isRestPath(url)) return (await resolveRestLocally('get', url)) as any
     return this.callFetch<T>(url, { method: "GET" })
   }
 
   async post<T>(url: string, data: any): Promise<T> {
+    if (isRestPath(url)) return (await resolveRestLocally('post', url)) as any
     return this.callFetch<T>(url, {
       method: 'POST',
       body: JSON.stringify(data)
@@ -125,6 +128,7 @@ export class BaseService {
   }
 
   async put<T>(url: string, data: any): Promise<T> {
+    if (isRestPath(url)) return (await resolveRestLocally('put', url)) as any
     return this.callFetch<T>(url, {
       method: 'PUT',
       body: JSON.stringify(data)
@@ -132,6 +136,7 @@ export class BaseService {
   }
 
   async delete<T>(url: string): Promise<T> {
+    if (isRestPath(url)) return (await resolveRestLocally('delete', url)) as any
     return this.callFetch<T>(url, { method: 'DELETE' })
   }
 }

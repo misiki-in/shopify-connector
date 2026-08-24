@@ -1,6 +1,6 @@
 {
   "name": "@misiki/shopify-connector",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "API Connector for Shopify with Svelte Commerce",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -36,7 +36,6 @@
   },
   "keywords": [
     "shopify",
-    "litekart",
     "connector",
     "ecommerce",
     "headless",

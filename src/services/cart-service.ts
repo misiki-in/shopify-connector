@@ -435,7 +435,7 @@ export class CartService extends BaseService {
   }
 
   /**
-   * Update cart (compatibility method for litekart-connector)
+   * Update cart (compatibility method for the storefront cart API)
    */
   async updateCart({
     qty,
@@ -484,7 +484,7 @@ export class CartService extends BaseService {
   }
 
   /**
-   * Update cart 2 (compatibility method for litekart-connector)
+   * Update cart 2 (compatibility method for the storefront cart API)
    */
   async updateCart2({
     cartId,

@@ -1,4 +1,5 @@
 import { BaseService } from './base-service'
+import { readStaticStore } from './static-store'
 import { storeData } from '../config'
 import { categoryService } from './category-service'
 
@@ -21,6 +22,11 @@ export class StoreService extends BaseService {
    * Retrieves store details by ID or Domain (Platform standard)
    */
   async getStoreByIdOrDomain(params?: { storeId?: string; domain?: string }) {
+    // Shopify has no store record of its own; when the storefront has registered one,
+    // that is the authoritative answer and no HTTP call is made.
+    const staticStore = await readStaticStore()
+    if (staticStore) return staticStore
+
     try {
       const store = JSON.parse(storeData)
       // Attempt to enrich with megamenu from collections
