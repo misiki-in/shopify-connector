@@ -46,7 +46,7 @@
     "typescript",
     "svelte"
   ],
-  "author": "Swadesh Behera",
+  "author": "Ipsita Sahoo",
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
